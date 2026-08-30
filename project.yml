@@ -1,0 +1,65 @@
+name: CodexWeek
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ${CODEXWEEK_DEVELOPMENT_TEAM}
+targets:
+  CodexWeek:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+      - path: Shared
+      - path: scripts/collect_codex_week.sh
+        buildPhase: resources
+    dependencies:
+      - target: CodexWeekWidgetExtension
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${CODEXWEEK_BUNDLE_PREFIX}.codexweek
+        PRODUCT_NAME: CodexWeek
+        CURRENT_PROJECT_VERSION: 12
+        MARKETING_VERSION: 2.1
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Codex Week
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        INFOPLIST_KEY_LSUIElement: NO
+        ENABLE_APP_SANDBOX: NO
+  CodexWeekWidgetExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Widget
+      - path: Shared
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: Codex This Week
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${CODEXWEEK_BUNDLE_PREFIX}.codexweek.widget
+        PRODUCT_NAME: CodexWeekWidgetExtension
+        CURRENT_PROJECT_VERSION: 12
+        MARKETING_VERSION: 2.1
+        SKIP_INSTALL: YES
+        ENABLE_APP_SANDBOX: YES
+        CODE_SIGN_ENTITLEMENTS: Widget/CodexWeekWidget.entitlements
+schemes:
+  CodexWeek:
+    build:
+      targets:
+        CodexWeek: all
+        CodexWeekWidgetExtension: all
+    run:
+      config: Debug

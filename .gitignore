@@ -1,0 +1,11 @@
+.DS_Store
+CodexWeek.xcodeproj/
+.build/
+build-*/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+Config.xcconfig
+preview/
+*.log
+*.tmp
