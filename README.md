@@ -7,6 +7,15 @@ Extra Large widgets.
 **No OpenAI API key is required.** The app reads Codex activity logs already
 stored on your Mac and never uploads conversation content or usage data.
 
+## Screenshots
+
+![Codex Week extra-large widget](screenshots/codex-week-extra-large.png)
+
+<p align="center">
+  <img src="screenshots/codex-week-quota-activity.png" alt="Quota and activity detail" width="62%">
+  <img src="screenshots/codex-week-token-usage.png" alt="Token usage detail" width="31%">
+</p>
+
 ## What it shows
 
 - Remaining weekly Codex quota and reset time
