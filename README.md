@@ -7,22 +7,53 @@ Extra Large widgets.
 **No OpenAI API key is required.** The app reads Codex activity logs already
 stored on your Mac and never uploads conversation content or usage data.
 
-## Screenshots
+## Core features
+
+- Refreshes automatically every 30 minutes by default. The interval is
+  configurable during installation.
+- Includes three native macOS layouts: **Small**, **Large**, and
+  **Extra Large (Landscape)**.
+- Designed so an iPhone or Apple Watch companion could be added later.
+  **Phone and watch sync are not included in the current version.**
+
+## Widget sizes
+
+### Small
+
+![Codex Week small widget](screenshots/codex-week-small.png)
+
+Shows the weekly quota ring plus today's and this week's token totals.
+
+### Large
+
+![Codex Week large widget](screenshots/codex-week-large.png)
+
+Adds weekly runtime, completed tasks, quota reset time, and the seven-day token
+chart.
+
+### Extra Large
 
 ![Codex Week extra-large widget](screenshots/codex-week-extra-large.png)
 
-<p align="center">
-  <img src="screenshots/codex-week-quota-activity.png" alt="Quota and activity detail" width="62%">
-  <img src="screenshots/codex-week-token-usage.png" alt="Token usage detail" width="31%">
-</p>
+Adds separate activity comparisons for today's runtime and completed tasks,
+with thin pacing markers for the theoretical target.
 
-## What it shows
+## Interface guide
 
-- Remaining weekly Codex quota and reset time
-- A pacing marker based on elapsed time in the quota window
-- Runtime and completed-task counts for today and this week
-- Token activity for today, this week, and each weekday
-- Automatic refresh through a per-user LaunchAgent
+1. **Actual usage vs. theoretical usage** — the quota ring shows the real
+   remaining weekly allowance. The white marker shows the even-use target for
+   the same point in the seven-day quota window, based on roughly one-seventh
+   of the allowance per day.
+2. **Today's runtime vs. theoretical pace** — the Runtime row compares today's
+   active Codex time with the week total. Its thin marker shows the expected
+   share if activity were spread evenly through the week.
+3. **Today's tasks vs. theoretical pace** — the Tasks Run row uses the same
+   comparison for completed Codex tasks.
+4. **Weekly tokens and today's tokens** — the chart compares today's token
+   count with the weekly total and shows the distribution across all seven
+   weekdays.
+5. **Quota reset date** — Quota Resets shows when the current weekly usage
+   window is scheduled to reset.
 
 ## Requirements
 
