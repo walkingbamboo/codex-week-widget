@@ -28,30 +28,35 @@ Shows the weekly quota ring plus today's and this week's token totals.
 
 ![Codex Week large widget](screenshots/codex-week-large.png)
 
-Adds weekly runtime, completed tasks, quota reset time, and the seven-day token
+Adds reset-cycle runtime, task runs, quota reset time, and the seven-day token
 chart.
 
 ### Extra Large
 
 ![Codex Week extra-large widget](screenshots/codex-week-extra-large.png)
 
-Adds separate activity comparisons for today's runtime and completed tasks,
-with thin pacing markers for the theoretical target.
+Adds current-cycle, forecast, and previous-cycle comparisons for runtime, task
+runs, and tokens. The filled bar is `NOW`, the amber dashed marker is
+`FORECAST`, and the white marker is `LAST`; labels follow their markers as the
+scale changes. It also adds reset-cycle closure and a token combo chart whose
+bars show daily totals, solid line shows the three-day moving average, and
+dashed continuation shows the current trend forecast.
 
 ## Interface guide
 
 1. **Actual usage vs. theoretical usage** — the quota ring shows the real
-   remaining weekly allowance. The white marker shows the even-use target for
-   the same point in the seven-day quota window, based on roughly one-seventh
-   of the allowance per day.
-2. **Today's runtime vs. theoretical pace** — the Runtime row compares today's
-   active Codex time with the week total. Its thin marker shows the expected
-   share if activity were spread evenly through the week.
-3. **Today's tasks vs. theoretical pace** — the Tasks Run row uses the same
-   comparison for completed Codex tasks.
-4. **Weekly tokens and today's tokens** — the chart compares today's token
-   count with the weekly total and shows the distribution across all seven
-   weekdays.
+   remaining weekly allowance. The white `NOW` marker shows the even-use target
+   at the current moment. The amber `EOD` marker shows the target remaining at
+   the end of today. Both follow the live quota window reported by Codex, so a
+   manually triggered reset starts a new pacing window automatically.
+2. **Runtime progress** — the Runtime row compares the current reset cycle with
+   its end-of-cycle forecast and the preceding complete reset cycle.
+3. **Task progress and closure** — Tasks Run uses the same comparison. Weekly
+   Closure separates completed, interrupted, and still-running task turns.
+4. **Token pace and trend** — the cycle-total track compares current,
+   forecast, and previous-cycle tokens. Daily bars use cycle days `D1`–`D7`;
+   the solid line is a three-day moving average and the dashed segment is its
+   forward trend.
 5. **Quota reset date** — Quota Resets shows when the current weekly usage
    window is scheduled to reset.
 
@@ -169,6 +174,8 @@ recoverable.
 Codex log schemas are internal implementation details and may change in future
 Codex releases. If metrics stop updating after a Codex update, open an issue
 with the non-sensitive error output from `~/Library/Logs/CodexWeek/`.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 

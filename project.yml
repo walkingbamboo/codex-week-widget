@@ -25,8 +25,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ${CODEXWEEK_BUNDLE_PREFIX}.codexweek
         PRODUCT_NAME: CodexWeek
-        CURRENT_PROJECT_VERSION: 12
-        MARKETING_VERSION: 2.1
+        CURRENT_PROJECT_VERSION: 14
+        MARKETING_VERSION: 2.3
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Codex Week
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
@@ -50,8 +50,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ${CODEXWEEK_BUNDLE_PREFIX}.codexweek.widget
         PRODUCT_NAME: CodexWeekWidgetExtension
-        CURRENT_PROJECT_VERSION: 12
-        MARKETING_VERSION: 2.1
+        CURRENT_PROJECT_VERSION: 14
+        MARKETING_VERSION: 2.3
         SKIP_INSTALL: YES
         ENABLE_APP_SANDBOX: YES
         CODE_SIGN_ENTITLEMENTS: Widget/CodexWeekWidget.entitlements
