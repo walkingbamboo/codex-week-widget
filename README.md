@@ -83,7 +83,7 @@ Clone the repository and run the guided installer:
 git clone https://github.com/walkingbamboo/codex-week-widget.git
 cd codex-week-widget
 chmod +x scripts/*.sh
-./scripts/install.sh
+zsh ./scripts/install.sh
 ```
 
 The installer asks for:
@@ -128,7 +128,7 @@ is managed by `~/Library/LaunchAgents/io.github.codexweek.refresh.plist`.
 ### Widget is blank or disappears after changing size
 
 ```bash
-./scripts/repair_widget.sh
+zsh ./scripts/repair_widget.sh
 ```
 
 If that does not help, remove the widget from the desktop, run the repair
@@ -148,13 +148,13 @@ Refresh logs are stored in `~/Library/Logs/CodexWeek/`.
 ### Build signing fails
 
 Verify the Team ID, use a unique bundle prefix, and confirm Xcode has downloaded
-the signing certificate for that team. Re-run `./scripts/install.sh` after
+the signing certificate for that team. Re-run `zsh ./scripts/install.sh` after
 correcting the value.
 
 ## Uninstall
 
 ```bash
-./scripts/uninstall.sh
+zsh ./scripts/uninstall.sh
 ```
 
 The app, LaunchAgent, and configuration are moved to Trash so they remain

@@ -37,8 +37,8 @@ All notable changes to Codex Week are documented here.
   time on large local Codex histories.
 - The 30-minute background refresh job now completes successfully outside an
   interactive shell.
-- Restored executable permissions for the bundled install, refresh, repair,
-  and uninstall scripts.
+- Installation and repair commands now use an explicit shell invocation so
+  they also work from archives that do not preserve executable permissions.
 
 ### Privacy
 
