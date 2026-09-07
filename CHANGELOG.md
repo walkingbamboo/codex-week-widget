@@ -1,46 +1,37 @@
-# Changelog
+# 更新记录
 
-All notable changes to Codex Week are documented here.
+这里记录 Codex Week 每个版本主要改了什么。
 
-## [2.3] - 2026-09-07
+## 2.3 — 2026-09-07
 
-### Added
+这次主要把 Widget 从“显示用了多少”，升级成“看得懂这一周用得快不快、照这个速度最后会用到哪里”。
 
-- Reset-cycle forecasting for runtime, tasks, and token usage.
-- Previous-cycle comparisons with dynamically positioned `FORECAST` and `LAST`
-  markers.
-- A weekly closure-status bar for completed, stopped, and in-progress tasks.
-- An end-of-day quota marker alongside the current theoretical quota marker.
-- A combined token chart with daily bars, a three-day moving average, and a
-  projected trend for the remainder of the reset cycle.
+### 新增功能
 
-### Changed
+- 增加用量预测：根据目前的使用速度，估算这个周期结束时会用掉多少运行时间、任务数和 Token。
+- 增加上一个周期对比：可以同时看到现在、预测结果和上个周期的实际结果。
+- 增加每周任务闭环情况：把任务分成已完成、已停止和仍在进行中，方便看还有多少事情没有收尾。
+- 配额圆环增加两根参考线：白线表示“现在这个时间点的理想用量”，黄线表示“今天结束时可以用到的理想用量”。
+- Token 图表升级：柱子显示每天用了多少，实线显示最近三天的平均趋势，黄色虚线显示照目前速度继续使用的大概走势。
 
-- Quota pacing now starts from the actual reset-cycle boundary, including when
-  a reset is used early instead of waiting for the scheduled reset.
-- Runtime, task, and token scales now adapt to the largest of current,
-  forecast, or previous-cycle values.
-- Token bars now follow reset-cycle days (`D1` through `D7`) instead of calendar
-  weekdays.
-- Chart labels and colors now match their corresponding fills and markers to
-  make current, forecast, and previous values easier to distinguish.
-- Reset information is positioned below the quota ring for a more balanced
-  Extra Large layout.
+### 显示方式调整
 
-### Fixed
+- 如果你提前手动 Reset，Widget 会从真正 Reset 的时间重新计算，不再继续沿用旧周期的起点。
+- 运行时间、任务数和 Token 的长条会根据“现在、预测、上个周期”三者中最大的数值自动调整比例，不会再出现两条永远都是满的情况。
+- Token 的七天柱状图改成 `D1` 到 `D7`，代表 Reset 后的第 1 天到第 7 天，不再按星期一到星期日计算。
+- `NOW` 的文字颜色和已经使用的部分保持一致；`FORECAST` 使用黄色虚线；`LAST` 使用白线，减少看错的可能。
+- `FORECAST` 和 `LAST` 的文字会跟着各自的线移动，不再固定放在左右两边。
+- Reset 时间移到左边圆环下方，让 Extra Large 版面更平衡。
 
-- The theoretical quota line now uses the live quota window duration instead
-  of assuming a fixed seven-day cycle.
-- Automatic refresh can locate `rg` when launched by macOS with a restricted
-  `PATH`, and falls back to system `grep` when needed.
-- Log collection now prefilters relevant events, substantially reducing refresh
-  time on large local Codex histories.
-- The 30-minute background refresh job now completes successfully outside an
-  interactive shell.
-- Installation and repair commands now use an explicit shell invocation so
-  they also work from archives that do not preserve executable permissions.
+### 修复的问题
 
-### Privacy
+- 修正理论用量的起点。现在会按照 Codex 实际提供的周期长度和 Reset 时间计算，包括主动使用 Reset 的情况。
+- 修正每 30 分钟自动刷新有时不工作的情况。
+- 加快资料读取速度。即使本地累积了很多 Codex 记录，刷新也不会再花将近一分钟。
+- 修正 macOS 后台执行时找不到 `rg`，导致 Widget 没有新资料的问题；找不到时会自动改用系统自带的 `grep`。
+- 安装、修复和删除命令改为明确使用 `zsh`，即使下载后的文件没有保留可执行权限，也可以正常运行。
 
-- All processing remains local. No API key, PAT, or external service is
-  required.
+### 隐私
+
+- 所有资料都只在自己的 Mac 上处理。
+- 不需要填写 API Key 或 GitHub PAT，也不会把 Codex 使用记录传到外部服务。
