@@ -26,10 +26,18 @@ struct CodexWeekView: View {
 
     @Environment(\.widgetFamily) private var family
 
-    private let weekdayLabels = ["M", "T", "W", "T", "F", "S", "S"]
+    private let weekdayLabels = ["D1", "D2", "D3", "D4", "D5", "D6", "D7"]
     private let primaryText = Color.white.opacity(0.96)
     private let secondaryText = Color.white.opacity(0.64)
     private let tertiaryText = Color.white.opacity(0.42)
+    private let endOfDayTarget = Color(red: 1.0, green: 0.72, blue: 0.30)
+    private let runtimeColor = Color(red: 0.42, green: 0.92, blue: 0.82)
+    private let taskColor = Color(red: 0.48, green: 0.62, blue: 1.0)
+
+    private var endOfDayTheoreticalRemainingPercent: Int {
+        entry.snapshot.endOfDayTheoreticalRemainingPercent
+            ?? entry.snapshot.theoreticalRemainingPercent
+    }
 
     private func runtimeText(_ seconds: Int) -> String {
         let hours = seconds / 3600
@@ -41,8 +49,20 @@ struct CodexWeekView: View {
     private var todayRuntimeText: String { runtimeText(entry.snapshot.todayRuntimeSeconds ?? 0) }
 
     private var currentDayIndex: Int {
-        let weekday = Calendar.current.component(.weekday, from: entry.date)
-        return (weekday + 5) % 7
+        guard let cycleStart = entry.snapshot.cycleStartAt else {
+            let weekday = Calendar.current.component(.weekday, from: entry.date)
+            return (weekday + 5) % 7
+        }
+        return max(0, min(6, Int(entry.date.timeIntervalSince(cycleStart) / 86_400)))
+    }
+
+    private var cycleRangeText: String {
+        guard let cycleStart = entry.snapshot.cycleStartAt else { return "CURRENT RESET CYCLE" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "MMM d, h:mm a"
+        return "\(formatter.string(from: cycleStart)) → \(formatter.string(from: entry.snapshot.resetAt))"
     }
 
     private var theoreticalTodayShare: Double {
@@ -131,7 +151,7 @@ struct CodexWeekView: View {
                 Spacer()
                 Text("Today \(tokenText(entry.snapshot.todayTokens))")
                     .font(.caption.weight(.semibold))
-                Text("Week \(tokenText(entry.snapshot.weekTokens))")
+                Text("Cycle \(tokenText(entry.snapshot.weekTokens))")
                     .font(.caption)
                     .foregroundStyle(secondaryText)
             }
@@ -142,7 +162,7 @@ struct CodexWeekView: View {
     }
 
     private var extraLargeBody: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label("CODEX THIS WEEK", systemImage: "sparkles")
                     .font(.system(size: 15, weight: .semibold))
@@ -152,60 +172,94 @@ struct CodexWeekView: View {
             .font(.caption)
             .foregroundStyle(secondaryText)
 
-            HStack(alignment: .top, spacing: 24) {
-                VStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 18) {
+                VStack(spacing: 5) {
                     quotaRing
-                        .frame(width: 186, height: 186)
+                        .frame(width: 176, height: 176)
+                    Text("EOD = END OF DAY")
+                        .font(.system(size: 7, weight: .medium))
+                        .foregroundStyle(tertiaryText)
+                    Label("QUOTA RESETS", systemImage: "arrow.clockwise")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(tertiaryText)
+                        .padding(.top, 8)
+                    Text(entry.snapshot.resetAt, format: .dateTime.month(.abbreviated).day().hour().minute())
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundStyle(secondaryText)
+                        .lineLimit(1)
                 }
-                .frame(width: 190)
-                .padding(.top, 12)
+                .frame(width: 180)
+                .padding(.top, 8)
 
-                VStack(alignment: .leading, spacing: 19) {
-                    Text("ACTIVITY")
-                        .font(.system(size: 12, weight: .semibold))
-                    activityComparison(
-                        title: "RUNTIME",
-                        today: todayRuntimeText,
-                        week: weekRuntimeText,
-                        progress: Double(entry.snapshot.todayRuntimeSeconds ?? 0) / Double(max(entry.snapshot.runtimeSeconds, 1)),
-                        targetProgress: theoreticalTodayShare,
-                        color: Color(red: 0.42, green: 0.92, blue: 0.82)
-                    )
-                    activityComparison(
-                        title: "TASKS RUN",
-                        today: "\(entry.snapshot.todayCompletedTasks ?? 0)",
-                        week: "\(entry.snapshot.completedTasks)",
-                        progress: Double(entry.snapshot.todayCompletedTasks ?? 0) / Double(max(entry.snapshot.completedTasks, 1)),
-                        targetProgress: theoreticalTodayShare,
-                        color: Color(red: 0.48, green: 0.62, blue: 1.0)
-                    )
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label("QUOTA RESETS", systemImage: "arrow.clockwise")
-                            .font(.caption2)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("ACTIVITY")
+                            .font(.system(size: 12, weight: .semibold))
+                        Spacer()
+                        Text("RESET CYCLE")
+                            .font(.system(size: 7, weight: .semibold))
                             .foregroundStyle(secondaryText)
-                        Text(entry.snapshot.resetAt, format: .dateTime.month(.abbreviated).day().hour().minute())
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundStyle(secondaryText)
-                            .lineLimit(1)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Color.white.opacity(0.08), in: Capsule())
                     }
+                    Text(cycleRangeText.uppercased())
+                        .font(.system(size: 7, weight: .medium))
+                        .foregroundStyle(tertiaryText)
+                        .lineLimit(1)
+
+                    cycleComparison(
+                        title: "RUNTIME",
+                        nowText: runtimeText(entry.snapshot.runtimeSeconds),
+                        forecastText: runtimeText(entry.snapshot.forecastRuntimeSeconds ?? entry.snapshot.runtimeSeconds),
+                        lastText: runtimeText(entry.snapshot.previousRuntimeSeconds ?? entry.snapshot.runtimeSeconds),
+                        now: Double(entry.snapshot.runtimeSeconds),
+                        forecast: Double(entry.snapshot.forecastRuntimeSeconds ?? entry.snapshot.runtimeSeconds),
+                        last: Double(entry.snapshot.previousRuntimeSeconds ?? entry.snapshot.runtimeSeconds),
+                        color: runtimeColor
+                    )
+                    cycleComparison(
+                        title: "TASKS RUN",
+                        nowText: "\(entry.snapshot.completedTasks)",
+                        forecastText: "\(entry.snapshot.forecastCompletedTasks ?? entry.snapshot.completedTasks)",
+                        lastText: "\(entry.snapshot.previousCompletedTasks ?? entry.snapshot.completedTasks)",
+                        now: Double(entry.snapshot.completedTasks),
+                        forecast: Double(entry.snapshot.forecastCompletedTasks ?? entry.snapshot.completedTasks),
+                        last: Double(entry.snapshot.previousCompletedTasks ?? entry.snapshot.completedTasks),
+                        color: taskColor
+                    )
+                    closureBar
                 }
-                .frame(width: 190, alignment: .leading)
+                .frame(width: 224, alignment: .leading)
 
                 Divider().opacity(0.25)
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 9) {
                     Text("TOKEN USAGE")
                         .font(.system(size: 12, weight: .semibold))
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text("Today \(tokenText(entry.snapshot.todayTokens))")
-                            .font(.caption.weight(.semibold))
-                        Text("Week \(tokenText(entry.snapshot.weekTokens))")
-                            .font(.caption)
-                            .foregroundStyle(secondaryText)
-                        Spacer(minLength: 0)
+                    cycleComparison(
+                        title: "CYCLE TOTAL",
+                        nowText: tokenText(entry.snapshot.weekTokens),
+                        forecastText: tokenText(entry.snapshot.forecastTokens ?? entry.snapshot.weekTokens),
+                        lastText: tokenText(entry.snapshot.previousTokens ?? entry.snapshot.weekTokens),
+                        now: Double(entry.snapshot.weekTokens),
+                        forecast: Double(entry.snapshot.forecastTokens ?? entry.snapshot.weekTokens),
+                        last: Double(entry.snapshot.previousTokens ?? entry.snapshot.weekTokens),
+                        color: runtimeColor
+                    )
+                    HStack {
+                        Text("DAILY TOKENS")
+                        Spacer()
+                        HStack(spacing: 3) {
+                            Rectangle().fill(primaryText.opacity(0.75)).frame(width: 12, height: 1.5)
+                            Rectangle().fill(endOfDayTarget).frame(width: 12, height: 1.5)
+                            Text("3-DAY AVG + FORECAST")
+                        }
                     }
-                    tokenChart
-                        .frame(maxWidth: .infinity, minHeight: 216)
+                    .font(.system(size: 7, weight: .semibold))
+                    .foregroundStyle(tertiaryText)
+                    cycleTokenChart
+                        .frame(maxWidth: .infinity, minHeight: 142)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -228,7 +282,7 @@ struct CodexWeekView: View {
                 }
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 1) {
-                    Text("WEEK")
+                    Text("CYCLE")
                         .font(.system(size: 9))
                         .foregroundStyle(secondaryText)
                     Text(tokenText(entry.snapshot.weekTokens))
@@ -256,17 +310,24 @@ struct CodexWeekView: View {
             RingMarker(percent: Double(entry.snapshot.theoreticalRemainingPercent) / 100)
                 .stroke(.white, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .shadow(color: .black.opacity(0.55), radius: 1)
+            RingMarker(percent: Double(endOfDayTheoreticalRemainingPercent) / 100)
+                .stroke(endOfDayTarget, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .shadow(color: .black.opacity(0.45), radius: 1)
             VStack(spacing: 0) {
                 Text("\(entry.snapshot.remainingPercent)%")
                     .font(.system(size: 29, weight: .semibold, design: .rounded))
                 Text("LEFT")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(secondaryText)
-                Text("TARGET \(entry.snapshot.theoreticalRemainingPercent)%")
-                    .font(.system(size: 7, weight: .semibold, design: .rounded))
-                    .tracking(0.3)
-                    .foregroundStyle(secondaryText)
-                    .padding(.top, 5)
+                HStack(spacing: 4) {
+                    Text("NOW \(entry.snapshot.theoreticalRemainingPercent)%")
+                        .foregroundStyle(secondaryText)
+                    Text("EOD \(endOfDayTheoreticalRemainingPercent)%")
+                        .foregroundStyle(endOfDayTarget)
+                }
+                .font(.system(size: 7, weight: .semibold, design: .rounded))
+                .tracking(0.15)
+                .padding(.top, 5)
             }
         }
     }
@@ -312,40 +373,227 @@ struct CodexWeekView: View {
         }
     }
 
-    private func activityComparison(
+    private func markerLabelX(ratio: Double, width: CGFloat, labelWidth: CGFloat) -> CGFloat {
+        max(labelWidth / 2, min(width - labelWidth / 2, width * ratio))
+    }
+
+    private func cycleComparison(
         title: String,
-        today: String,
-        week: String,
-        progress: Double,
-        targetProgress: Double,
+        nowText: String,
+        forecastText: String,
+        lastText: String,
+        now: Double,
+        forecast: Double,
+        last: Double,
         color: Color
     ) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title)
-                .font(.caption2)
-                .foregroundStyle(secondaryText)
+        let maximum = max(now, forecast, last, 1)
+        let nowRatio = max(0, min(now / maximum, 1))
+        let forecastRatio = max(0, min(forecast / maximum, 1))
+        let lastRatio = max(0, min(last / maximum, 1))
+
+        return VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Today \(today)")
-                    .font(.caption.weight(.semibold))
-                Spacer()
-                Text("Week \(week)")
-                    .font(.caption2)
+                Text(title)
                     .foregroundStyle(secondaryText)
+                Spacer()
+                Text("NOW \(nowText)")
+                    .foregroundStyle(color)
             }
+            .font(.system(size: 8, weight: .semibold, design: .rounded))
+
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(Color.white.opacity(0.10))
                     Capsule()
                         .fill(color)
-                        .frame(width: proxy.size.width * max(0, min(progress, 1)))
+                        .frame(width: proxy.size.width * nowRatio)
+                    Path { path in
+                        let x = proxy.size.width * forecastRatio
+                        path.move(to: CGPoint(x: x, y: -3))
+                        path.addLine(to: CGPoint(x: x, y: 15))
+                    }
+                    .stroke(endOfDayTarget, style: StrokeStyle(lineWidth: 1.5, dash: [2.5, 2]))
                     Rectangle()
                         .fill(primaryText.opacity(0.9))
-                        .frame(width: 1.5, height: family == .systemExtraLarge ? 17 : 11)
-                        .offset(x: max(0, min(proxy.size.width - 1.5, proxy.size.width * targetProgress - 0.75)))
+                        .frame(width: 1.5, height: 18)
+                        .offset(x: max(0, min(proxy.size.width - 1.5, proxy.size.width * lastRatio - 0.75)))
                 }
             }
-            .frame(height: family == .systemExtraLarge ? 13 : 7)
+            .frame(height: 12)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .topLeading) {
+                    Text("FORECAST \(forecastText)")
+                        .foregroundStyle(endOfDayTarget)
+                        .frame(width: 98)
+                        .position(x: markerLabelX(ratio: forecastRatio, width: proxy.size.width, labelWidth: 98), y: 5)
+                    Text("LAST \(lastText)")
+                        .foregroundStyle(secondaryText)
+                        .frame(width: 82)
+                        .position(x: markerLabelX(ratio: lastRatio, width: proxy.size.width, labelWidth: 82), y: 17)
+                }
+                .font(.system(size: 7, weight: .semibold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            }
+            .frame(height: 24)
+        }
+    }
+
+    private var closureBar: some View {
+        let completed = entry.snapshot.closureCompletedTasks ?? entry.snapshot.completedTasks
+        let inProgress = entry.snapshot.closureInProgressTasks ?? 0
+        let abandoned = entry.snapshot.closureAbandonedTasks ?? 0
+        let total = max(completed + inProgress + abandoned, 1)
+        let notClosed = inProgress + abandoned
+        let closedPercent = Int((Double(completed) / Double(total) * 100).rounded())
+        let notClosedPercent = 100 - closedPercent
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("WEEKLY CLOSURE")
+                    .foregroundStyle(secondaryText)
+                Spacer()
+                Text("\(closedPercent)% CLOSED")
+                    .foregroundStyle(primaryText)
+            }
+            .font(.system(size: 8, weight: .semibold))
+
+            GeometryReader { proxy in
+                HStack(spacing: 0) {
+                    Rectangle()
+                        .fill(runtimeColor)
+                        .frame(width: proxy.size.width * CGFloat(completed) / CGFloat(total))
+                    Rectangle()
+                        .fill(taskColor)
+                        .frame(width: proxy.size.width * CGFloat(inProgress) / CGFloat(total))
+                    Rectangle()
+                        .fill(endOfDayTarget)
+                        .frame(width: proxy.size.width * CGFloat(abandoned) / CGFloat(total))
+                }
+                .clipShape(Capsule())
+                .background(Color.white.opacity(0.08), in: Capsule())
+            }
+            .frame(height: 10)
+
+            HStack(spacing: 7) {
+                closureLegend("Done", color: runtimeColor)
+                closureLegend("Active", color: taskColor)
+                closureLegend("Stopped", color: endOfDayTarget)
+                Spacer(minLength: 0)
+            }
+            HStack {
+                Text("\(completed) closed")
+                    .foregroundStyle(secondaryText)
+                Spacer()
+                Text("NOT CLOSED \(notClosedPercent)% · \(notClosed)")
+                    .foregroundStyle(endOfDayTarget)
+            }
+            .font(.system(size: 7, weight: .semibold, design: .rounded))
+        }
+    }
+
+    private func closureLegend(_ text: String, color: Color) -> some View {
+        HStack(spacing: 2) {
+            Circle().fill(color).frame(width: 4, height: 4)
+            Text(text)
+        }
+        .font(.system(size: 6.5, weight: .medium))
+        .foregroundStyle(secondaryText)
+    }
+
+    private var cycleTokenChart: some View {
+        let values = Array(entry.snapshot.dailyTokens.prefix(7)).map(Double.init)
+            + Array(repeating: 0, count: max(0, 7 - entry.snapshot.dailyTokens.count))
+        let visibleValues = Array(values.prefix(7))
+        let dayIndex = currentDayIndex
+        let movingAverages: [Double] = visibleValues.indices.map { index in
+            let start = max(0, index - 2)
+            let slice = visibleValues[start...index]
+            return slice.reduce(0, +) / Double(slice.count)
+        }
+        let forecastAverage = Double(entry.snapshot.forecastTokens ?? entry.snapshot.weekTokens) / 7.0
+        let lastActualAverage = movingAverages[dayIndex]
+        let projected: [Double] = visibleValues.indices.map { index in
+            guard index > dayIndex else { return movingAverages[index] }
+            let remaining = max(6 - dayIndex, 1)
+            let progress = Double(index - dayIndex) / Double(remaining)
+            return lastActualAverage + (forecastAverage - lastActualAverage) * progress
+        }
+        let maximum = max(visibleValues.max() ?? 0, projected.max() ?? 0, 1)
+
+        return Canvas { context, size in
+            let labelHeight: CGFloat = 17
+            let topPadding: CGFloat = 11
+            let plotHeight = max(size.height - labelHeight - topPadding, 1)
+            let slotWidth = size.width / 7
+            let barWidth = min(22, slotWidth * 0.54)
+
+            func point(index: Int, value: Double) -> CGPoint {
+                CGPoint(
+                    x: slotWidth * (CGFloat(index) + 0.5),
+                    y: topPadding + plotHeight * (1 - CGFloat(value / maximum))
+                )
+            }
+
+            for index in 0..<7 {
+                let value = visibleValues[index]
+                let barHeight = value > 0 ? max(5, plotHeight * CGFloat(value / maximum)) : 5
+                let barRect = CGRect(
+                    x: slotWidth * (CGFloat(index) + 0.5) - barWidth / 2,
+                    y: topPadding + plotHeight - barHeight,
+                    width: barWidth,
+                    height: barHeight
+                )
+                let barColor = index == dayIndex
+                    ? runtimeColor
+                    : Color.white.opacity(value > 0 ? 0.22 : 0.07)
+                context.fill(Path(roundedRect: barRect, cornerRadius: 4), with: .color(barColor))
+
+                if value > 0 {
+                    context.draw(
+                        Text(tokenText(Int64(value)))
+                            .font(.system(size: 7, weight: .semibold))
+                            .foregroundColor(index == dayIndex ? primaryText : secondaryText),
+                        at: CGPoint(x: barRect.midX, y: max(4, barRect.minY - 5)),
+                        anchor: .bottom
+                    )
+                }
+                context.draw(
+                    Text(weekdayLabels[index])
+                        .font(.system(size: 7, weight: index == dayIndex ? .semibold : .regular))
+                        .foregroundColor(index == dayIndex ? primaryText : secondaryText),
+                    at: CGPoint(x: barRect.midX, y: size.height - 1),
+                    anchor: .bottom
+                )
+            }
+
+            var actualPath = Path()
+            for index in 0...dayIndex {
+                let currentPoint = point(index: index, value: movingAverages[index])
+                if index == 0 {
+                    actualPath.move(to: currentPoint)
+                } else {
+                    actualPath.addLine(to: currentPoint)
+                }
+            }
+            context.stroke(actualPath, with: .color(primaryText.opacity(0.78)), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+            for index in 0...dayIndex {
+                let dot = point(index: index, value: movingAverages[index])
+                context.fill(Path(ellipseIn: CGRect(x: dot.x - 2.3, y: dot.y - 2.3, width: 4.6, height: 4.6)), with: .color(primaryText.opacity(0.85)))
+            }
+
+            if dayIndex < 6 {
+                var forecastPath = Path()
+                forecastPath.move(to: point(index: dayIndex, value: movingAverages[dayIndex]))
+                for index in (dayIndex + 1)..<7 {
+                    forecastPath.addLine(to: point(index: index, value: projected[index]))
+                }
+                context.stroke(forecastPath, with: .color(endOfDayTarget), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [4, 3]))
+            }
         }
     }
 }
