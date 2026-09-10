@@ -7,6 +7,7 @@ struct CodexWeekSnapshot: Codable, Hashable {
     let theoreticalRemainingPercent: Int
     let endOfDayTheoreticalRemainingPercent: Int?
     let cycleStartAt: Date?
+    let activityWeekStartAt: Date?
     let resetAt: Date
     let runtimeSeconds: Int
     let previousRuntimeSeconds: Int?
@@ -31,6 +32,7 @@ struct CodexWeekSnapshot: Codable, Hashable {
         theoreticalRemainingPercent: 85,
         endOfDayTheoreticalRemainingPercent: 79,
         cycleStartAt: ISO8601DateFormatter().date(from: "2026-08-11T02:08:00Z")!,
+        activityWeekStartAt: ISO8601DateFormatter().date(from: "2026-08-10T16:00:00Z")!,
         resetAt: ISO8601DateFormatter().date(from: "2026-08-18T02:08:00Z")!,
         runtimeSeconds: 23_879,
         previousRuntimeSeconds: 43_920,
