@@ -28,19 +28,18 @@ Shows the weekly quota ring plus today's and this week's token totals.
 
 ![Codex Week large widget](screenshots/codex-week-large.png)
 
-Adds reset-cycle runtime, task runs, quota reset time, and the seven-day token
-chart.
+Adds this week's runtime, task runs, quota reset time, and the Monday-to-Sunday
+token chart.
 
 ### Extra Large
 
 ![Codex Week extra-large widget](screenshots/codex-week-extra-large.png)
 
-Adds current-cycle, forecast, and previous-cycle comparisons for runtime, task
-runs, and tokens. The filled bar is `NOW`, the amber dashed marker is
-`FORECAST`, and the white marker is `LAST`; labels follow their markers as the
-scale changes. It also adds reset-cycle closure and a token combo chart whose
-bars show daily totals, solid line shows the three-day moving average, and
-dashed continuation shows the current trend forecast.
+Adds this-week, end-of-week estimate, and last-week comparisons for runtime,
+task runs, and tokens. Values stay in three fixed columns: `SO FAR`,
+`WEEK EST.`, and `LAST WEEK`. It also adds weekly closure and a token combo
+chart whose bars show Monday-to-Sunday totals, solid line shows the three-day
+moving average, and dashed continuation shows the current trend estimate.
 
 ## Interface guide
 
@@ -49,16 +48,20 @@ dashed continuation shows the current trend forecast.
    at the current moment. The amber `EOD` marker shows the target remaining at
    the end of today. Both follow the live quota window reported by Codex, so a
    manually triggered reset starts a new pacing window automatically.
-2. **Runtime progress** — the Runtime row compares the current reset cycle with
-   its end-of-cycle forecast and the preceding complete reset cycle.
+2. **Runtime progress** — the Runtime row compares this calendar week with its
+   end-of-week estimate and the preceding calendar week.
 3. **Task progress and closure** — Tasks Run uses the same comparison. Weekly
    Closure separates completed, interrupted, and still-running task turns.
-4. **Token pace and trend** — the cycle-total track compares current,
-   forecast, and previous-cycle tokens. Daily bars use cycle days `D1`–`D7`;
-   the solid line is a three-day moving average and the dashed segment is its
-   forward trend.
+4. **Token pace and trend** — the week-total track compares this week's current
+   total, end-of-week estimate, and last week's total. Daily bars use Monday
+   through Sunday; the solid line is a three-day moving average and the dashed
+   segment is its forward trend.
 5. **Quota reset date** — Quota Resets shows when the current weekly usage
    window is scheduled to reset.
+
+Quota pacing and activity history use separate clocks. A manual quota reset
+changes only the quota ring, pacing markers, and reset date. It does not clear
+this week's runtime, tasks, closure status, or daily token history.
 
 ## Requirements
 
