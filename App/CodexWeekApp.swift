@@ -26,12 +26,12 @@ struct DashboardView: View {
                 card("Quota left", "\(snapshot.remainingPercent)%")
                 card("Pacing now", "\(snapshot.theoreticalRemainingPercent)%")
                 card("Pacing EOD", "\(snapshot.endOfDayTheoreticalRemainingPercent ?? snapshot.theoreticalRemainingPercent)%")
-                card("Tasks this cycle", "\(snapshot.completedTasks)")
+                card("Tasks this week", "\(snapshot.completedTasks)")
             }
 
             HStack(spacing: 14) {
                 card("Tokens today", tokenText(snapshot.todayTokens))
-                card("Tokens this cycle", tokenText(snapshot.weekTokens))
+                card("Tokens this week", tokenText(snapshot.weekTokens))
             }
 
             Divider()
