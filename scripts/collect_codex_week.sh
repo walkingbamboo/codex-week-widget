@@ -59,18 +59,21 @@ window_minutes="$(jq -r '.primary.window_minutes // 10080' <<<"$latest_limits")"
 
 window_seconds="$((window_minutes * 60))"
 cycle_start_epoch="$((reset_epoch - window_seconds))"
-previous_cycle_start_epoch="$((cycle_start_epoch - window_seconds))"
-elapsed_cycle_seconds="$((now_epoch - cycle_start_epoch))"
-(( elapsed_cycle_seconds < 1 )) && elapsed_cycle_seconds=1
-(( elapsed_cycle_seconds > window_seconds )) && elapsed_cycle_seconds=window_seconds
+weekday_number="$(date '+%u')"
+week_start_epoch="$(date -v-"$((weekday_number - 1))"d -v0H -v0M -v0S '+%s')"
+week_end_epoch="$((week_start_epoch + 7 * 24 * 60 * 60))"
+previous_week_start_epoch="$((week_start_epoch - 7 * 24 * 60 * 60))"
+elapsed_week_seconds="$((now_epoch - week_start_epoch))"
+(( elapsed_week_seconds < 1 )) && elapsed_week_seconds=1
+(( elapsed_week_seconds > 7 * 24 * 60 * 60 )) && elapsed_week_seconds="$((7 * 24 * 60 * 60))"
 today_start_epoch="$(date -v0H -v0M -v0S '+%s')"
 day_end_epoch="$(date -v+1d -v0H -v0M -v0S '+%s')"
 
 summary="$(jq -c \
-  --argjson currentStart "$cycle_start_epoch" \
-  --argjson currentEnd "$reset_epoch" \
-  --argjson previousStart "$previous_cycle_start_epoch" \
-  --argjson previousEnd "$cycle_start_epoch" \
+  --argjson currentStart "$week_start_epoch" \
+  --argjson currentEnd "$week_end_epoch" \
+  --argjson previousStart "$previous_week_start_epoch" \
+  --argjson previousEnd "$week_start_epoch" \
   --argjson todayStart "$today_start_epoch" '
   . as $events
   | ([$events[] | select(.kind=="taskStarted" or .kind=="taskCompleted" or .kind=="taskAbandoned")]
@@ -109,8 +112,8 @@ summary="$(jq -c \
     }' <<<"$events")"
 
 forecast_values="$(jq -n \
-  --argjson elapsed "$elapsed_cycle_seconds" \
-  --argjson window "$window_seconds" \
+  --argjson elapsed "$elapsed_week_seconds" \
+  --argjson window "$((7 * 24 * 60 * 60))" \
   --argjson runtime "$(jq '.runtimeSeconds' <<<"$summary")" \
   --argjson tasks "$(jq '.completedTasks' <<<"$summary")" \
   --argjson tokens "$(jq '.weekTokens' <<<"$summary")" \
@@ -119,6 +122,7 @@ forecast_values="$(jq -n \
 generated_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 reset_at="$(date -u -r "$reset_epoch" '+%Y-%m-%dT%H:%M:%SZ')"
 cycle_start_at="$(date -u -r "$cycle_start_epoch" '+%Y-%m-%dT%H:%M:%SZ')"
+activity_week_start_at="$(date -u -r "$week_start_epoch" '+%Y-%m-%dT%H:%M:%SZ')"
 theoretical_remaining="$(( (reset_epoch - now_epoch) * 100 / window_seconds ))"
 (( theoretical_remaining < 0 )) && theoretical_remaining=0
 (( theoretical_remaining > 100 )) && theoretical_remaining=100
@@ -130,6 +134,7 @@ temporary_output="${output_path}.tmp.$$"
 jq -n \
   --arg generatedAt "$generated_at" \
   --arg cycleStartAt "$cycle_start_at" \
+  --arg activityWeekStartAt "$activity_week_start_at" \
   --arg resetAt "$reset_at" \
   --argjson remainingPercent "$((100 - ${primary_used%.*}))" \
   --argjson theoreticalRemainingPercent "$theoretical_remaining" \
@@ -150,7 +155,7 @@ jq -n \
   --argjson previousTokens "$(jq '.previousTokens' <<<"$summary")" \
   --argjson forecastTokens "$(jq '.tokens' <<<"$forecast_values")" \
   --argjson dailyTokens "$(jq '.dailyTokens' <<<"$summary")" \
-  '{generatedAt:$generatedAt,cycleStartAt:$cycleStartAt,remainingPercent:$remainingPercent,theoreticalRemainingPercent:$theoreticalRemainingPercent,endOfDayTheoreticalRemainingPercent:$endOfDayTheoreticalRemainingPercent,resetAt:$resetAt,runtimeSeconds:$runtimeSeconds,previousRuntimeSeconds:$previousRuntimeSeconds,forecastRuntimeSeconds:$forecastRuntimeSeconds,completedTasks:$completedTasks,previousCompletedTasks:$previousCompletedTasks,forecastCompletedTasks:$forecastCompletedTasks,todayRuntimeSeconds:$todayRuntimeSeconds,todayCompletedTasks:$todayCompletedTasks,closureCompletedTasks:$closureCompletedTasks,closureAbandonedTasks:$closureAbandonedTasks,closureInProgressTasks:$closureInProgressTasks,todayTokens:$todayTokens,weekTokens:$weekTokens,previousTokens:$previousTokens,forecastTokens:$forecastTokens,dailyTokens:$dailyTokens}' \
+  '{generatedAt:$generatedAt,cycleStartAt:$cycleStartAt,activityWeekStartAt:$activityWeekStartAt,remainingPercent:$remainingPercent,theoreticalRemainingPercent:$theoreticalRemainingPercent,endOfDayTheoreticalRemainingPercent:$endOfDayTheoreticalRemainingPercent,resetAt:$resetAt,runtimeSeconds:$runtimeSeconds,previousRuntimeSeconds:$previousRuntimeSeconds,forecastRuntimeSeconds:$forecastRuntimeSeconds,completedTasks:$completedTasks,previousCompletedTasks:$previousCompletedTasks,forecastCompletedTasks:$forecastCompletedTasks,todayRuntimeSeconds:$todayRuntimeSeconds,todayCompletedTasks:$todayCompletedTasks,closureCompletedTasks:$closureCompletedTasks,closureAbandonedTasks:$closureAbandonedTasks,closureInProgressTasks:$closureInProgressTasks,todayTokens:$todayTokens,weekTokens:$weekTokens,previousTokens:$previousTokens,forecastTokens:$forecastTokens,dailyTokens:$dailyTokens}' \
   > "$temporary_output"
 mv -f "$temporary_output" "$output_path"
 
