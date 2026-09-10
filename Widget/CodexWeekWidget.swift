@@ -26,7 +26,7 @@ struct CodexWeekView: View {
 
     @Environment(\.widgetFamily) private var family
 
-    private let weekdayLabels = ["D1", "D2", "D3", "D4", "D5", "D6", "D7"]
+    private let weekdayLabels = ["M", "T", "W", "T", "F", "S", "S"]
     private let primaryText = Color.white.opacity(0.96)
     private let secondaryText = Color.white.opacity(0.64)
     private let tertiaryText = Color.white.opacity(0.42)
@@ -49,20 +49,21 @@ struct CodexWeekView: View {
     private var todayRuntimeText: String { runtimeText(entry.snapshot.todayRuntimeSeconds ?? 0) }
 
     private var currentDayIndex: Int {
-        guard let cycleStart = entry.snapshot.cycleStartAt else {
+        guard let weekStart = entry.snapshot.activityWeekStartAt else {
             let weekday = Calendar.current.component(.weekday, from: entry.date)
             return (weekday + 5) % 7
         }
-        return max(0, min(6, Int(entry.date.timeIntervalSince(cycleStart) / 86_400)))
+        return max(0, min(6, Int(entry.date.timeIntervalSince(weekStart) / 86_400)))
     }
 
-    private var cycleRangeText: String {
-        guard let cycleStart = entry.snapshot.cycleStartAt else { return "CURRENT RESET CYCLE" }
+    private var weekRangeText: String {
+        guard let weekStart = entry.snapshot.activityWeekStartAt else { return "MONDAY — SUNDAY" }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = .current
-        formatter.dateFormat = "MMM d, h:mm a"
-        return "\(formatter.string(from: cycleStart)) → \(formatter.string(from: entry.snapshot.resetAt))"
+        formatter.dateFormat = "MMM d"
+        let weekEnd = Calendar.current.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
+        return "\(formatter.string(from: weekStart)) — \(formatter.string(from: weekEnd))"
     }
 
     private var theoreticalTodayShare: Double {
@@ -151,7 +152,7 @@ struct CodexWeekView: View {
                 Spacer()
                 Text("Today \(tokenText(entry.snapshot.todayTokens))")
                     .font(.caption.weight(.semibold))
-                Text("Cycle \(tokenText(entry.snapshot.weekTokens))")
+                Text("Week \(tokenText(entry.snapshot.weekTokens))")
                     .font(.caption)
                     .foregroundStyle(secondaryText)
             }
@@ -196,14 +197,14 @@ struct CodexWeekView: View {
                         Text("ACTIVITY")
                             .font(.system(size: 12, weight: .semibold))
                         Spacer()
-                        Text("RESET CYCLE")
+                        Text("THIS WEEK")
                             .font(.system(size: 7, weight: .semibold))
                             .foregroundStyle(secondaryText)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
                             .background(Color.white.opacity(0.08), in: Capsule())
                     }
-                    Text(cycleRangeText.uppercased())
+                    Text(weekRangeText.uppercased())
                         .font(.system(size: 7, weight: .medium))
                         .foregroundStyle(tertiaryText)
                         .lineLimit(1)
@@ -238,7 +239,7 @@ struct CodexWeekView: View {
                     Text("TOKEN USAGE")
                         .font(.system(size: 12, weight: .semibold))
                     cycleComparison(
-                        title: "CYCLE TOTAL",
+                        title: "WEEK TOTAL",
                         nowText: tokenText(entry.snapshot.weekTokens),
                         forecastText: tokenText(entry.snapshot.forecastTokens ?? entry.snapshot.weekTokens),
                         lastText: tokenText(entry.snapshot.previousTokens ?? entry.snapshot.weekTokens),
@@ -253,7 +254,7 @@ struct CodexWeekView: View {
                         HStack(spacing: 3) {
                             Rectangle().fill(primaryText.opacity(0.75)).frame(width: 12, height: 1.5)
                             Rectangle().fill(endOfDayTarget).frame(width: 12, height: 1.5)
-                            Text("3-DAY AVG + FORECAST")
+                            Text("3-DAY AVG + WEEK EST.")
                         }
                     }
                     .font(.system(size: 7, weight: .semibold))
@@ -282,7 +283,7 @@ struct CodexWeekView: View {
                 }
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 1) {
-                    Text("CYCLE")
+                    Text("WEEK")
                         .font(.system(size: 9))
                         .foregroundStyle(secondaryText)
                     Text(tokenText(entry.snapshot.weekTokens))
@@ -373,10 +374,6 @@ struct CodexWeekView: View {
         }
     }
 
-    private func markerLabelX(ratio: Double, width: CGFloat, labelWidth: CGFloat) -> CGFloat {
-        max(labelWidth / 2, min(width - labelWidth / 2, width * ratio))
-    }
-
     private func cycleComparison(
         title: String,
         nowText: String,
@@ -392,15 +389,10 @@ struct CodexWeekView: View {
         let forecastRatio = max(0, min(forecast / maximum, 1))
         let lastRatio = max(0, min(last / maximum, 1))
 
-        return VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title)
-                    .foregroundStyle(secondaryText)
-                Spacer()
-                Text("NOW \(nowText)")
-                    .foregroundStyle(color)
-            }
-            .font(.system(size: 8, weight: .semibold, design: .rounded))
+        return VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 8, weight: .semibold, design: .rounded))
+                .foregroundStyle(secondaryText)
 
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
@@ -423,23 +415,50 @@ struct CodexWeekView: View {
             }
             .frame(height: 12)
 
-            GeometryReader { proxy in
-                ZStack(alignment: .topLeading) {
-                    Text("FORECAST \(forecastText)")
-                        .foregroundStyle(endOfDayTarget)
-                        .frame(width: 98)
-                        .position(x: markerLabelX(ratio: forecastRatio, width: proxy.size.width, labelWidth: 98), y: 5)
-                    Text("LAST \(lastText)")
-                        .foregroundStyle(secondaryText)
-                        .frame(width: 82)
-                        .position(x: markerLabelX(ratio: lastRatio, width: proxy.size.width, labelWidth: 82), y: 17)
-                }
-                .font(.system(size: 7, weight: .semibold, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            HStack(alignment: .top, spacing: 4) {
+                comparisonValue(
+                    label: "SO FAR",
+                    value: nowText,
+                    color: color,
+                    horizontalAlignment: .leading,
+                    frameAlignment: .leading
+                )
+                comparisonValue(
+                    label: "WEEK EST.",
+                    value: forecastText,
+                    color: endOfDayTarget,
+                    horizontalAlignment: .center,
+                    frameAlignment: .center
+                )
+                comparisonValue(
+                    label: "LAST WEEK",
+                    value: lastText,
+                    color: primaryText.opacity(0.88),
+                    horizontalAlignment: .trailing,
+                    frameAlignment: .trailing
+                )
             }
-            .frame(height: 24)
         }
+    }
+
+    private func comparisonValue(
+        label: String,
+        value: String,
+        color: Color,
+        horizontalAlignment: HorizontalAlignment,
+        frameAlignment: Alignment
+    ) -> some View {
+        VStack(alignment: horizontalAlignment, spacing: 1) {
+            Text(label)
+                .font(.system(size: 6, weight: .medium))
+                .foregroundStyle(tertiaryText)
+            Text(value)
+                .font(.system(size: 7.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: frameAlignment)
     }
 
     private var closureBar: some View {
