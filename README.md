@@ -1,11 +1,32 @@
 # Codex Week Widget
 
+**[简体中文](README.zh-CN.md) · [Download v2.4.1](https://github.com/walkingbamboo/codex-week-widget/releases/tag/v2.4.1) · [MIT license](LICENSE)**
+
 A native macOS WidgetKit dashboard for local Codex usage. It shows quota pacing,
 runtime, completed tasks, and daily/weekly token activity in Small, Large, and
 Extra Large widgets.
 
 **No OpenAI API key is required.** The app reads Codex activity logs already
 stored on your Mac and never uploads conversation content or usage data.
+
+![Codex Week extra-large widget](screenshots/codex-week-extra-large.png)
+
+See how much Codex allowance is left, whether you are ahead of your weekly pace,
+and how your activity compares with last week—without opening another dashboard.
+
+Independent community project; not affiliated with or endorsed by OpenAI.
+
+## Download and install
+
+Get **Codex-Week-Widget-v2.4.1-Source-Installer.zip** from the
+[release page](https://github.com/walkingbamboo/codex-week-widget/releases/tag/v2.4.1).
+Unzip it, install the prerequisites below, and double-click **Install.command**,
+or run `zsh ./scripts/install.sh` in Terminal. The installer builds and signs the
+app locally with your own Apple Development team.
+
+**This release is a source installation kit, not a notarized, ready-to-run app.**
+You need full Xcode, a configured Apple development team, and Homebrew dependencies.
+A Developer ID-signed and notarized app is not available in this release.
 
 ## Core features
 
@@ -68,9 +89,9 @@ this week's runtime, tasks, closure status, or daily token history.
 - macOS 14 or newer
 - Codex desktop app or CLI with local data in `~/.codex`
 - Full Xcode installed in `/Applications/Xcode.app`
-- An Apple Development team selected in Xcode (a personal team is sufficient
-  for local installation)
-- [Homebrew](https://brew.sh), XcodeGen, and jq
+- An Apple Development signing identity and team configured in Xcode
+  (personal-team signing depends on your account and Xcode provisioning)
+- [Homebrew](https://brew.sh), XcodeGen, jq, and zstd
 
 Install the command-line dependencies:
 
@@ -177,6 +198,18 @@ recoverable.
 Codex log schemas are internal implementation details and may change in future
 Codex releases. If metrics stop updating after a Codex update, open an issue
 with the non-sensitive error output from `~/Library/Logs/CodexWeek/`.
+
+Screenshots show the native widget UI from an earlier local build; the displayed
+figures illustrate that captured usage and are not your own live data. Before a
+valid snapshot exists, the UI falls back to built-in sample values. Quota comes
+from the latest supported rate-limit event in local logs, not a live account API.
+Token counts are activity estimates, not a bill; task counts describe logged
+turns, not proof that a user project has been delivered. End-of-week forecasts
+extrapolate recent activity and are not guarantees.
+
+Validation for v2.4.1: local macOS Release build and synthetic collector regression
+checks (plain/compressed logs, corrupt/missing history, previous snapshot preservation).
+Installation and widget behavior on a second Mac have not been verified.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
