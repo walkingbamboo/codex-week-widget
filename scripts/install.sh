@@ -12,10 +12,10 @@ config_path="$config_dir/config.env"
 log_dir="$HOME/Library/Logs/CodexWeek"
 lsregister="/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
 
-for command_name in xcodegen jq sqlite3; do
+for command_name in xcodegen jq zstd sqlite3; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     print -u2 "Missing dependency: $command_name"
-    print -u2 "Install prerequisites with: brew install xcodegen jq"
+    print -u2 "Install prerequisites with: brew install xcodegen jq zstd"
     exit 1
   fi
 done

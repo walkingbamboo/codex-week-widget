@@ -1,6 +1,9 @@
 #!/bin/zsh
 set -euo pipefail
 
+# LaunchAgents do not inherit an interactive Homebrew PATH.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
 config_path="${CODEX_WEEK_CONFIG:-$HOME/Library/Application Support/CodexWeek/config.env}"
 if [[ -r "$config_path" ]]; then
   source "$config_path"
@@ -25,6 +28,45 @@ rollout_files=("${(@f)$(sqlite3 "$codex_root/state_5.sqlite" \
   "select rollout_path from threads where updated_at >= $scan_start order by updated_at desc;")}")
 rollout_files=("${(@)rollout_files:#}")
 
+# Codex can compact older rollouts without changing their SQLite paths.
+# Read both formats; never silently publish an incomplete activity history.
+plain_rollouts=()
+compressed_rollouts=()
+for rollout_path in "${rollout_files[@]}"; do
+  if [[ -r "$rollout_path" ]]; then
+    plain_rollouts+=("$rollout_path")
+  elif [[ -r "${rollout_path}.zst" ]]; then
+    compressed_rollouts+=("${rollout_path}.zst")
+  else
+    print -u2 "Codex Week: rollout unavailable: $rollout_path"
+    exit 1
+  fi
+done
+
+zstd_command=""
+if (( ${#compressed_rollouts[@]} > 0 )); then
+  for candidate in /opt/homebrew/bin/zstd /usr/local/bin/zstd "${commands[zstd]:-}"; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+      zstd_command="$candidate"
+      break
+    fi
+  done
+  if [[ -z "$zstd_command" ]]; then
+    print -u2 "Codex Week: compressed rollouts require zstd (brew install zstd)."
+    exit 1
+  fi
+fi
+
+read_rollouts() {
+  if (( ${#plain_rollouts[@]} > 0 )); then
+    /bin/cat "${plain_rollouts[@]}" || return $?
+  fi
+  if (( ${#compressed_rollouts[@]} > 0 )); then
+    "$zstd_command" -dc -- "${compressed_rollouts[@]}" || return $?
+  fi
+  return 0
+}
+
 event_filter=()
 for rg_path in \
   /opt/homebrew/bin/rg \
@@ -38,7 +80,14 @@ for rg_path in \
 done
 (( ${#event_filter[@]} > 0 )) || event_filter=(/usr/bin/grep -hE)
 
-events="$("${event_filter[@]}" '"type":"(task_started|task_complete|turn_aborted|token_count)"' "${rollout_files[@]}" 2>/dev/null | jq -c '
+filter_events() {
+  local filter_status=0
+  "${event_filter[@]}" '"type":"(task_started|task_complete|turn_aborted|token_count)"' || filter_status=$?
+  # No matches is valid for an empty/new account; I/O failures are not.
+  (( filter_status <= 1 ))
+}
+
+events="$(read_rollouts | filter_events | jq -c '
   select(type=="object" and .type=="event_msg")
   | ((.timestamp[0:19]+"Z")|fromdateiso8601) as $eventTimestamp
   | if .payload.type=="task_started" then
@@ -49,7 +98,7 @@ events="$("${event_filter[@]}" '"type":"(task_started|task_complete|turn_aborted
       {kind:"taskAbandoned",timestamp:(.payload.completed_at // $eventTimestamp),turnId:(.payload.turn_id // ""),durationMs:(.payload.duration_ms // 0)}
     elif .payload.type=="token_count" then
       {kind:"token",timestamp:$eventTimestamp,tokens:(.payload.info.last_token_usage.total_tokens // 0),limits:.payload.rate_limits}
-    else empty end' 2>/dev/null | jq -s '.')"
+    else empty end' | jq -s '.')"
 
 latest_limits="$(jq -c '[.[] | select(.limits != null)] | max_by(.timestamp).limits // {}' <<<"$events")"
 primary_used="$(jq -r '.primary.used_percent // 0' <<<"$latest_limits")"
